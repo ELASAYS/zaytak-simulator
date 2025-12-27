@@ -2,7 +2,7 @@
 <html lang="ar">
 <head>
 <meta charset="UTF-8">
-<title>زيتك | محاكي زيوت السيارات الذكي</title>
+<title>زيتك | كتالوج زيوت السيارات</title>
 
 <style>
 body {
@@ -14,33 +14,28 @@ body {
   background: #ffffff;
   padding: 20px;
   border-radius: 10px;
-  max-width: 450px;
+  max-width: 480px;
   margin: auto;
 }
-h2 { text-align: center; }
-select, button {
+h2 {
+  text-align: center;
+}
+select {
   width: 100%;
   padding: 12px;
   margin-top: 10px;
   font-size: 16px;
 }
-button {
-  background: #0a7cff;
-  color: #fff;
-  border: none;
-  cursor: pointer;
-}
-.compare {
-  background: #444;
-}
-.whatsapp {
-  background: #25D366;
-}
-.card {
-  margin-top: 15px;
+.product {
   background: #f9f9f9;
-  padding: 15px;
+  padding: 12px;
+  margin-top: 10px;
   border-radius: 6px;
+}
+.price {
+  color: #0a7cff;
+  font-weight: bold;
+  margin-top: 5px;
 }
 .footer {
   margin-top: 20px;
@@ -54,170 +49,84 @@ button {
 <body>
 
 <div class="container">
-  <h2>🔧 محاكي زيتك الذكي</h2>
+  <h2>🛒 كتالوج زيتك</h2>
 
-  <select id="brand">
-    <option value="Mitsubishi">Mitsubishi</option>
-    <option value="Toyota">Toyota</option>
-    <option value="Hyundai">Hyundai</option>
+  <select id="categorySelect" onchange="loadProducts()">
+    <option value="">اختر التصنيف</option>
   </select>
 
-  <select id="engine">
-    <option value="بنزين">بنزين</option>
-  </select>
-
-  <select id="clientType">
-    <option value="individual">فرد</option>
-    <option value="workshop">ورشة</option>
-    <option value="distributor">موزع</option>
-  </select>
-
-  <button onclick="runMCP()">اعرف الزيت المناسب</button>
-  <button class="compare" onclick="compareOils()">قارن الزيوت</button>
-
-  <div id="result"></div>
-
-  <button id="waBtn" class="whatsapp" style="display:none;" onclick="openWhatsApp()">
-    تواصل واتساب للطلب
-  </button>
+  <div id="productsList"></div>
 
   <div class="footer">
-    زيتك – Smart Oil Simulator | نسخة تجارية
+    زيتك – Smart Oil Catalog
   </div>
 </div>
 
 <script>
-/* ======================
-   DATABASE
-====================== */
-const oils = [
-  {
-    car: "Mitsubishi",
-    engine: "بنزين",
-    oilBrand: "Shell",
-    product: "Helix HX7",
-    viscosity: "10W-40",
-    liters: 4,
-    wholesale: 420
-  },
-  {
-    car: "Mitsubishi",
-    engine: "بنزين",
-    oilBrand: "Total",
-    product: "Quartz 7000",
-    viscosity: "10W-40",
-    liters: 4,
-    wholesale: 395
-  },
-  {
-    car: "Toyota",
-    engine: "بنزين",
-    oilBrand: "Castrol",
-    product: "GTX",
-    viscosity: "10W-40",
-    liters: 4,
-    wholesale: 410
-  }
-];
+/* =========================
+   SETTINGS
+========================= */
+const PROFIT_RATE = 1.25; // نسبة الربح
 
-let lastResult = null;
+/* =========================
+   DATA LOAD
+========================= */
+let shopData = null;
 
-/* ======================
-   TOOLS
-====================== */
-function priceCalc(w, type) {
-  if (type === "distributor") return w;
-  if (type === "workshop") return Math.round(w * 1.15);
-  return Math.round(w * 1.25);
+fetch("oil_shop_complete.json")
+  .then(res => res.json())
+  .then(data => {
+    shopData = data;
+    loadCategories();
+  })
+  .catch(() => {
+    alert("فشل تحميل بيانات المنتجات");
+  });
+
+/* =========================
+   LOAD CATEGORIES
+========================= */
+function loadCategories() {
+  const select = document.getElementById("categorySelect");
+  shopData.categories.forEach(cat => {
+    const opt = document.createElement("option");
+    opt.value = cat.id;
+    opt.textContent = cat.name;
+    select.appendChild(opt);
+  });
 }
 
-/* ======================
-   MCP RUN
-====================== */
-function runMCP() {
-  const brand = brandEl().value;
-  const engine = engineEl().value;
-  const client = clientEl().value;
-
-  const match = oils.find(o => o.car === brand && o.engine === engine);
-
-  const box = resultEl();
+/* =========================
+   LOAD PRODUCTS
+========================= */
+function loadProducts() {
+  const catId = Number(document.getElementById("categorySelect").value);
+  const box = document.getElementById("productsList");
   box.innerHTML = "";
 
-  if (!match) {
-    box.innerText = "لا توجد توصية حالياً لهذه السيارة.";
+  if (!catId) return;
+
+  const products = shopData.products.filter(
+    p => p.category_id === catId
+  );
+
+  if (products.length === 0) {
+    box.innerHTML = "<p>لا توجد منتجات في هذا التصنيف</p>";
     return;
   }
 
-  const price = priceCalc(match.wholesale, client);
-  lastResult = { brand, engine, price, oil: match };
+  products.forEach(p => {
+    const sellPrice = Math.round(p.wholesale_price * PROFIT_RATE);
 
-  box.innerHTML = `
-    <div class="card">
-      <strong>الزيت الأنسب:</strong><br>
-      ${match.oilBrand} ${match.product}<br><br>
-      اللزوجة: ${match.viscosity}<br>
-      الكمية: ${match.liters} لتر<br>
-      السعر: ${price} جنيه<br>
-    </div>
-  `;
-
-  document.getElementById("waBtn").style.display = "block";
-}
-
-/* ======================
-   COMPARISON
-====================== */
-function compareOils() {
-  const brand = brandEl().value;
-  const engine = engineEl().value;
-  const client = clientEl().value;
-
-  const options = oils.filter(o => o.car === brand && o.engine === engine);
-  const box = resultEl();
-  box.innerHTML = "";
-
-  if (options.length < 2) {
-    box.innerText = "لا يوجد أكثر من خيار للمقارنة.";
-    return;
-  }
-
-  options.forEach(o => {
-    const p = priceCalc(o.wholesale, client);
     box.innerHTML += `
-      <div class="card">
-        ${o.oilBrand} ${o.product}<br>
-        ${o.viscosity} – ${p} جنيه
+      <div class="product">
+        <strong>${p.product_name}</strong><br>
+        ${p.liters ? "السعة: " + p.liters + " " + p.unit + "<br>" : ""}
+        <div class="price">السعر: ${sellPrice} جنيه</div>
       </div>
     `;
   });
 }
-
-/* ======================
-   WHATSAPP
-====================== */
-function openWhatsApp() {
-  if (!lastResult) return;
-
-  const msg = `
-طلب زيت سيارة:
-السيارة: ${lastResult.brand}
-الموتور: ${lastResult.engine}
-الزيت: ${lastResult.oil.oilBrand} ${lastResult.oil.product}
-السعر: ${lastResult.price} جنيه
-  `;
-  const phone = "201019388501";
-  const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
-  window.open(url, "_blank");
-}
-
-/* ======================
-   HELPERS
-====================== */
-const brandEl = () => document.getElementById("brand");
-const engineEl = () => document.getElementById("engine");
-const clientEl = () => document.getElementById("clientType");
-const resultEl = () => document.getElementById("result");
 </script>
 
 </body>
