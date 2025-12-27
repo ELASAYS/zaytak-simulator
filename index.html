@@ -2,14 +2,14 @@
 <html lang="ar">
 <head>
 <meta charset="UTF-8">
-<title>زيتك | محاكي + كتالوج ذكي</title>
+<title>زيتك | مستشار زيوت السيارات</title>
 
 <style>
 body{font-family:Tahoma,Arial;background:#f2f2f2;padding:20px}
-.container{background:#fff;padding:20px;border-radius:10px;max-width:560px;margin:auto}
+.container{background:#fff;padding:20px;border-radius:10px;max-width:580px;margin:auto}
 h2{text-align:center}
 select,button{width:100%;padding:12px;margin-top:10px;font-size:16px}
-button{cursor:pointer;border:none}
+button{border:none;cursor:pointer}
 .primary{background:#0a7cff;color:#fff}
 .secondary{background:#444;color:#fff}
 .whatsapp{background:#25D366;color:#fff}
@@ -22,13 +22,13 @@ button{cursor:pointer;border:none}
 <body>
 
 <div class="container">
-<h2>🔧 زيتك – المحاكي الذكي</h2>
+<h2>🔧 زيتك – اختار الصح</h2>
 
 <!-- نوع العميل -->
 <select id="clientType">
   <option value="individual">فرد</option>
   <option value="workshop">ورشة</option>
-  <option value="distributor">موزع</option>
+  <option value="distributor">موزّع</option>
 </select>
 
 <!-- بيانات السيارة -->
@@ -49,7 +49,7 @@ button{cursor:pointer;border:none}
 <button class="primary" onclick="recommendOil()">اعرف الزيت المناسب</button>
 <button class="secondary" onclick="compareOils()">قارن الزيوت</button>
 
-<!-- الكتالوج -->
+<!-- الكتالوج (مخفي افتراضيًا) -->
 <select id="categorySelect" onchange="loadCategory()">
   <option value="">تصفح حسب التصنيف</option>
 </select>
@@ -60,10 +60,13 @@ button{cursor:pointer;border:none}
 </div>
 
 <script>
-/* ========= SETTINGS ========= */
-const WHATSAPP="201019388501";
+/* ================== GLOBAL MODE ================== */
+let MODE = "individual"; // افتراضي فرد
 
-/* ========= PRICING ========= */
+/* ================== SETTINGS ================== */
+const WHATSAPP = "201019388501";
+
+/* ================== PRICING ================== */
 function priceRate(){
   const t=document.getElementById("clientType").value;
   if(t==="distributor") return 1.05;
@@ -71,13 +74,24 @@ function priceRate(){
   return 1.25;
 }
 
-/* ========= DATA ========= */
+/* ================== DATA ================== */
 let data=null;
 fetch("oil_shop_complete.json")
 .then(r=>r.json())
 .then(d=>{data=d;loadCategories();});
 
-/* ========= CATEGORIES ========= */
+/* ================== INIT ================== */
+window.onload=()=>{
+  document.getElementById("categorySelect").style.display="none";
+};
+
+/* ================== PRO MODE ================== */
+function unlockProMode(){
+  MODE="professional";
+  document.getElementById("categorySelect").style.display="block";
+}
+
+/* ================== CATEGORIES ================== */
 function loadCategories(){
   const s=document.getElementById("categorySelect");
   data.categories.forEach(c=>{
@@ -87,74 +101,74 @@ function loadCategories(){
   });
 }
 
-/* ========= RECOMMEND ========= */
+/* ================== RECOMMEND (INDIVIDUAL) ================== */
 function recommendOil(){
-  const box = document.getElementById("result");
-  box.innerHTML = "";
+  const box=document.getElementById("result");
+  box.innerHTML="";
 
-  // زيوت المحركات فقط
-  const oils = data.products.filter(p => p.category_id === 1);
+  const engine=document.getElementById("engineType").value||"بنزين";
 
-  if (oils.length === 0) {
-    box.innerHTML = "لا توجد زيوت محركات";
+  const oils=data.products.filter(p =>
+    p.category_id===1 &&
+    (engine==="ديزل"
+      ? p.product_name.includes("15")||p.product_name.includes("20")
+      : p.product_name.includes("10")||p.product_name.includes("5"))
+  );
+
+  if(oils.length===0){
+    box.innerHTML="أي زيت موثوق مناسب لعربيتك، اطلب وسنساعدك.";
     return;
   }
 
-  // ترتيب حسب سعر الجملة
-  const sorted = [...oils].sort((a,b) => a.wholesale_price - b.wholesale_price);
+  // ترتيب ذكي: أرخص → أوسط → أغلى
+  oils.sort((a,b)=>a.wholesale_price-b.wholesale_price);
+  const chosen=oils[0];
+  const price=Math.round(chosen.wholesale_price*priceRate());
 
-  // اختيارات ذكية
-  const economic = sorted[0];
-  const mid = sorted[Math.floor(sorted.length / 2)];
-  const premium = sorted[sorted.length - 1];
-
-  [economic, mid, premium].forEach((p, i) => {
-    if (!p) return;
-
-    const price = Math.round(p.wholesale_price * priceRate());
-    const label = i === 0 ? "اقتصادي" : i === 1 ? "أفضل اختيار" : "أعلى فئة";
-
-    box.innerHTML += `
-      <div class="product">
-        <strong>${label}</strong><br>
-        ${p.product_name}<br>
-        <div class="price">السعر: ${price} جنيه</div>
-        <button class="whatsapp"
-          onclick="wa('${p.product_name}', ${price})">
-          اطلب واتساب
-        </button>
-      </div>
-    `;
-  });
+  box.innerHTML=`
+    <div class="product">
+      <strong>الاختيار الآمن لعربيتك</strong><br>
+      ${chosen.product_name}<br><br>
+      <div class="price">السعر: ${price} جنيه</div>
+      <p style="font-size:14px;color:#555">
+        الزيت ده مناسب لنوع المحرك ومش هيضغط على الموتور.
+      </p>
+      <button class="whatsapp"
+        onclick="wa('${chosen.product_name}',${price})">
+        اطلبهولي
+      </button>
+    </div>`;
 }
 
-
-/* ========= COMPARE ========= */
+/* ================== COMPARE (PRO) ================== */
 function compareOils(){
+  unlockProMode();
   const box=document.getElementById("result");
   box.innerHTML="";
-  const oils=data.products.filter(p=>p.category_id===1).slice(0,5);
 
+  const oils=data.products.filter(p=>p.category_id===1).slice(0,5);
   oils.forEach(p=>{
     const price=Math.round(p.wholesale_price*priceRate());
     box.innerHTML+=card(p,price);
   });
 }
 
-/* ========= CATEGORY VIEW ========= */
+/* ================== CATEGORY VIEW ================== */
 function loadCategory(){
+  unlockProMode();
   const id=Number(document.getElementById("categorySelect").value);
   const box=document.getElementById("result");
   box.innerHTML="";
   if(!id) return;
 
-  data.products.filter(p=>p.category_id===id).forEach(p=>{
-    const price=Math.round(p.wholesale_price*priceRate());
-    box.innerHTML+=card(p,price);
-  });
+  data.products.filter(p=>p.category_id===id)
+    .forEach(p=>{
+      const price=Math.round(p.wholesale_price*priceRate());
+      box.innerHTML+=card(p,price);
+    });
 }
 
-/* ========= CARD ========= */
+/* ================== CARD ================== */
 function card(p,price){
   return `
   <div class="product">
@@ -168,7 +182,7 @@ function card(p,price){
   </div>`;
 }
 
-/* ========= WHATSAPP ========= */
+/* ================== WHATSAPP ================== */
 function wa(name,price){
   const msg=`طلب من زيتك:
 ${name}
