@@ -89,15 +89,45 @@ function loadCategories(){
 
 /* ========= RECOMMEND ========= */
 function recommendOil(){
-  const box=document.getElementById("result");
-  box.innerHTML="";
-  const oils=data.products.filter(p=>p.category_id===1).slice(0,3);
+  const box = document.getElementById("result");
+  box.innerHTML = "";
 
-  oils.forEach(p=>{
-    const price=Math.round(p.wholesale_price*priceRate());
-    box.innerHTML+=card(p,price);
+  // زيوت المحركات فقط
+  const oils = data.products.filter(p => p.category_id === 1);
+
+  if (oils.length === 0) {
+    box.innerHTML = "لا توجد زيوت محركات";
+    return;
+  }
+
+  // ترتيب حسب سعر الجملة
+  const sorted = [...oils].sort((a,b) => a.wholesale_price - b.wholesale_price);
+
+  // اختيارات ذكية
+  const economic = sorted[0];
+  const mid = sorted[Math.floor(sorted.length / 2)];
+  const premium = sorted[sorted.length - 1];
+
+  [economic, mid, premium].forEach((p, i) => {
+    if (!p) return;
+
+    const price = Math.round(p.wholesale_price * priceRate());
+    const label = i === 0 ? "اقتصادي" : i === 1 ? "أفضل اختيار" : "أعلى فئة";
+
+    box.innerHTML += `
+      <div class="product">
+        <strong>${label}</strong><br>
+        ${p.product_name}<br>
+        <div class="price">السعر: ${price} جنيه</div>
+        <button class="whatsapp"
+          onclick="wa('${p.product_name}', ${price})">
+          اطلب واتساب
+        </button>
+      </div>
+    `;
   });
 }
+
 
 /* ========= COMPARE ========= */
 function compareOils(){
