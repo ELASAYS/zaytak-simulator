@@ -2,130 +2,152 @@
 <html lang="ar">
 <head>
 <meta charset="UTF-8">
-<title>زيتك | كتالوج زيوت السيارات</title>
+<title>زيتك | كتالوج ذكي + Upsell</title>
 
 <style>
-body {
-  font-family: Tahoma, Arial;
-  background: #f2f2f2;
-  padding: 20px;
-}
-.container {
-  background: #ffffff;
-  padding: 20px;
-  border-radius: 10px;
-  max-width: 480px;
-  margin: auto;
-}
-h2 {
-  text-align: center;
-}
-select {
-  width: 100%;
-  padding: 12px;
-  margin-top: 10px;
-  font-size: 16px;
-}
-.product {
-  background: #f9f9f9;
-  padding: 12px;
-  margin-top: 10px;
-  border-radius: 6px;
-}
-.price {
-  color: #0a7cff;
-  font-weight: bold;
-  margin-top: 5px;
-}
-.footer {
-  margin-top: 20px;
-  text-align: center;
-  font-size: 13px;
-  color: #666;
-}
+body{font-family:Tahoma,Arial;background:#f2f2f2;padding:20px}
+.container{background:#fff;padding:20px;border-radius:10px;max-width:540px;margin:auto}
+h2{text-align:center}
+select{width:100%;padding:12px;margin-top:10px;font-size:16px}
+.product{background:#f9f9f9;padding:12px;margin-top:10px;border-radius:6px}
+.price{color:#0a7cff;font-weight:bold;margin-top:5px}
+.whatsapp{margin-top:8px;background:#25D366;color:#fff;border:none;padding:10px;width:100%;cursor:pointer}
+.upsell{background:#eef6ff;border:1px dashed #9cc1ff}
+.footer{margin-top:20px;text-align:center;font-size:13px;color:#666}
 </style>
 </head>
 
 <body>
 
 <div class="container">
-  <h2>🛒 كتالوج زيتك</h2>
+  <h2>🔧 زيتك – كتالوج ذكي</h2>
 
+  <!-- محاكي السيارة -->
+  <select id="carBrand">
+    <option value="">اختر ماركة السيارة</option>
+    <option>Toyota</option><option>Mitsubishi</option><option>Hyundai</option>
+    <option>Nissan</option><option>Chevrolet</option><option>Kia</option>
+    <option>Peugeot</option><option>Renault</option>
+  </select>
+
+  <select id="engineType">
+    <option value="">نوع المحرك</option>
+    <option value="بنزين">بنزين</option>
+    <option value="ديزل">ديزل</option>
+  </select>
+
+  <!-- التصنيفات -->
   <select id="categorySelect" onchange="loadProducts()">
     <option value="">اختر التصنيف</option>
   </select>
 
   <div id="productsList"></div>
 
-  <div class="footer">
-    زيتك – Smart Oil Catalog
-  </div>
+  <div class="footer">زيتك – Smart Oil Catalog</div>
 </div>
 
 <script>
-/* =========================
-   SETTINGS
-========================= */
-const PROFIT_RATE = 1.25; // نسبة الربح
+/* ================= SETTINGS ================= */
+const PROFIT_RATE = 1.25;
+const WHATSAPP_NUMBER = "201019388501";
 
-/* =========================
-   DATA LOAD
-========================= */
-let shopData = null;
+/* ================= DATA ================= */
+let shopData=null;
 
 fetch("oil_shop_complete.json")
-  .then(res => res.json())
-  .then(data => {
-    shopData = data;
-    loadCategories();
-  })
-  .catch(() => {
-    alert("فشل تحميل بيانات المنتجات");
-  });
+  .then(r=>r.json())
+  .then(d=>{shopData=d;loadCategories();})
+  .catch(()=>alert("فشل تحميل البيانات"));
 
-/* =========================
-   LOAD CATEGORIES
-========================= */
-function loadCategories() {
-  const select = document.getElementById("categorySelect");
-  shopData.categories.forEach(cat => {
-    const opt = document.createElement("option");
-    opt.value = cat.id;
-    opt.textContent = cat.name;
-    select.appendChild(opt);
+/* ================= LOAD CATEGORIES ================= */
+function loadCategories(){
+  const s=document.getElementById("categorySelect");
+  shopData.categories.forEach(c=>{
+    const o=document.createElement("option");
+    o.value=c.id;o.textContent=c.name;s.appendChild(o);
   });
 }
 
-/* =========================
-   LOAD PRODUCTS
-========================= */
-function loadProducts() {
-  const catId = Number(document.getElementById("categorySelect").value);
-  const box = document.getElementById("productsList");
-  box.innerHTML = "";
+/* ================= LOAD PRODUCTS + UPSELL ================= */
+function loadProducts(){
+  const catId=Number(document.getElementById("categorySelect").value);
+  const box=document.getElementById("productsList");
+  box.innerHTML="";
+  if(!catId) return;
 
-  if (!catId) return;
+  const car=document.getElementById("carBrand").value||"غير محدد";
+  const engine=document.getElementById("engineType").value||"غير محدد";
 
-  const products = shopData.products.filter(
-    p => p.category_id === catId
-  );
+  let products=shopData.products.filter(p=>p.category_id===catId);
+  if(products.length===0){box.innerHTML="<p>لا توجد منتجات</p>";return;}
 
-  if (products.length === 0) {
-    box.innerHTML = "<p>لا توجد منتجات في هذا التصنيف</p>";
-    return;
-  }
-
-  products.forEach(p => {
-    const sellPrice = Math.round(p.wholesale_price * PROFIT_RATE);
-
-    box.innerHTML += `
+  products.forEach(p=>{
+    const sell=Math.round(p.wholesale_price*PROFIT_RATE);
+    box.innerHTML+=`
       <div class="product">
         <strong>${p.product_name}</strong><br>
-        ${p.liters ? "السعة: " + p.liters + " " + p.unit + "<br>" : ""}
-        <div class="price">السعر: ${sellPrice} جنيه</div>
+        ${p.liters?`السعة: ${p.liters} ${p.unit}<br>`:""}
+        <div class="price">السعر: ${sell} جنيه</div>
+        <button class="whatsapp"
+          onclick="sendWA(['${p.product_name}'], [${sell}])">
+          اطلب عبر واتساب
+        </button>
       </div>
     `;
   });
+
+  /* Upsell فقط عند زيوت محركات (category_id === 1) */
+  if(catId===1){
+    const filter = shopData.products.find(p=>p.category_name==="فلاتر");
+    const grease = shopData.products.find(p=>p.category_name==="شحوم");
+
+    let upsellNames=[], upsellPrices=[];
+    if(filter){
+      const s=Math.round(filter.wholesale_price*PROFIT_RATE);
+      upsellNames.push(filter.product_name);
+      upsellPrices.push(s);
+      box.innerHTML+=`
+        <div class="product upsell">
+          <strong>🧰 فلتر مُقترح</strong><br>
+          ${filter.product_name}<br>
+          <div class="price">السعر: ${s} جنيه</div>
+        </div>`;
+    }
+    if(grease){
+      const s=Math.round(grease.wholesale_price*PROFIT_RATE);
+      upsellNames.push(grease.product_name);
+      upsellPrices.push(s);
+      box.innerHTML+=`
+        <div class="product upsell">
+          <strong>🧴 شحم مُقترح</strong><br>
+          ${grease.product_name}<br>
+          <div class="price">السعر: ${s} جنيه</div>
+        </div>`;
+    }
+
+    if(upsellNames.length){
+      box.innerHTML+=`
+        <button class="whatsapp"
+          onclick="sendWA(${JSON.stringify(upsellNames)}, ${JSON.stringify(upsellPrices)})">
+          اطلب الزيت + الإضافات
+        </button>`;
+    }
+  }
+}
+
+/* ================= WHATSAPP ================= */
+function sendWA(names, prices){
+  const car=document.getElementById("carBrand").value||"غير محدد";
+  const engine=document.getElementById("engineType").value||"غير محدد";
+
+  let lines=names.map((n,i)=>`- ${n} (${prices[i]} جنيه)`).join("\n");
+  const msg=`طلب من زيتك:
+السيارة: ${car}
+المحرك: ${engine}
+
+المنتجات:
+${lines}`;
+  window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`,"_blank");
 }
 </script>
 
