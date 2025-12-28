@@ -6,51 +6,18 @@
 <title>زيتك | كتالوج الموزّع</title>
 
 <style>
-body{
-  font-family:Tahoma,Arial;
-  background:#f2f2f2;
-  padding:15px
-}
-.container{
-  background:#fff;
-  padding:20px;
-  border-radius:10px;
-  max-width:650px;
-  margin:auto
-}
+body{font-family:Tahoma,Arial;background:#f2f2f2;padding:15px}
+.container{background:#fff;padding:20px;border-radius:10px;max-width:700px;margin:auto}
 h2{text-align:center}
-select,button{
-  width:100%;
-  padding:12px;
-  margin-top:10px;
-  font-size:16px
-}
-button{
-  border:none;
-  cursor:pointer
-}
-.product{
-  background:#f9f9f9;
-  padding:12px;
-  margin-top:10px;
-  border-radius:6px
-}
-.price{
-  color:#0a7cff;
-  font-weight:bold;
-  margin-top:5px
-}
-.whatsapp{
-  background:#25D366;
-  color:#fff;
-  margin-top:8px
-}
-.footer{
-  text-align:center;
-  font-size:13px;
-  color:#666;
-  margin-top:20px
-}
+select,button{width:100%;padding:12px;margin-top:10px;font-size:16px}
+button{border:none;cursor:pointer}
+.product{background:#f9f9f9;padding:12px;margin-top:10px;border-radius:6px}
+.price{color:#0a7cff;font-weight:bold}
+.qty{display:flex;gap:10px;align-items:center;margin-top:8px}
+.qty button{width:40px;background:#ddd}
+.cart{background:#eef6ff;padding:12px;margin-top:15px;border-radius:6px}
+.whatsapp{background:#25D366;color:#fff;margin-top:10px}
+.footer{text-align:center;font-size:13px;color:#666;margin-top:20px}
 </style>
 </head>
 
@@ -65,75 +32,118 @@ button{
 
   <div id="products"></div>
 
-  <div class="footer">
-    زيتك – Distributor Sales Catalog
+  <div class="cart" id="cartBox" style="display:none">
+    <strong>🧾 سلة الطلب</strong>
+    <div id="cartItems"></div>
+    <div class="price" id="totalPrice"></div>
+    <button class="whatsapp" onclick="sendOrder()">إرسال الطلب واتساب</button>
   </div>
+
+  <div class="footer">زيتك – Distributor Order Tool</div>
 </div>
 
 <script>
-document.addEventListener("DOMContentLoaded", function(){
+document.addEventListener("DOMContentLoaded", ()=>{
 
-const WHATSAPP = "201019388501"; // رقمك بدون +
-let data = null;
+const WHATSAPP="201019388501";
+let data=null;
+let cart={};
 
 /* ===== LOAD DATA ===== */
 fetch("oil_shop_complete.json")
-  .then(res => res.json())
-  .then(json => {
-    data = json;
-    loadCategories();
-  });
+.then(r=>r.json())
+.then(j=>{
+  data=j;
+  loadCategories();
+});
 
 /* ===== LOAD CATEGORIES ===== */
 function loadCategories(){
-  const select = document.getElementById("categorySelect");
-  data.categories.forEach(cat=>{
-    const opt = document.createElement("option");
-    opt.value = cat.id;
-    opt.textContent = cat.name;
-    select.appendChild(opt);
+  const s=document.getElementById("categorySelect");
+  data.categories.forEach(c=>{
+    const o=document.createElement("option");
+    o.value=c.id;o.textContent=c.name;
+    s.appendChild(o);
   });
 }
 
 /* ===== CATEGORY CHANGE ===== */
-document.getElementById("categorySelect").onchange = function(){
-  const catId = Number(this.value);
-  const box = document.getElementById("products");
-  box.innerHTML = "";
+document.getElementById("categorySelect").onchange=function(){
+  const id=Number(this.value);
+  const box=document.getElementById("products");
+  box.innerHTML="";
+  if(!id) return;
 
-  if(!catId) return;
-
-  const items = data.products.filter(p => p.category_id === catId);
-
-  if(items.length === 0){
-    box.innerHTML = "<p>لا توجد منتجات في هذا التصنيف</p>";
-    return;
-  }
-
-  items.forEach(p=>{
-    const price = Math.round(p.wholesale_price); // سعر واحد فقط
-
-    box.innerHTML += `
+  data.products.filter(p=>p.category_id===id).forEach(p=>{
+    box.innerHTML+=`
       <div class="product">
         <strong>${p.product_name}</strong><br>
-        ${p.liters ? `السعة: ${p.liters} ${p.unit}<br>` : ""}
-        <div class="price">السعر: ${price} جنيه</div>
-        <button class="whatsapp"
-          onclick="sendWA('${p.product_name}', ${price})">
-          اطلب واتساب
-        </button>
+        ${p.liters?`السعة: ${p.liters} ${p.unit}<br>`:""}
+        <div class="price">السعر: ${p.wholesale_price} جنيه</div>
+
+        <div class="qty">
+          <button onclick="updateQty(${p.id}, -1)">−</button>
+          <span id="q_${p.id}">0</span>
+          <button onclick="updateQty(${p.id}, 1)">+</button>
+        </div>
       </div>
     `;
   });
 };
 
-/* ===== WHATSAPP ===== */
-window.sendWA = function(name, price){
-  const msg =
-`طلب منتجات – زيتك
-------------------
-${name}
-السعر: ${price} جنيه`;
+/* ===== UPDATE QTY ===== */
+window.updateQty=function(id,delta){
+  const product=data.products.find(p=>p.id===id);
+  if(!product) return;
+
+  if(!cart[id]) cart[id]={...product, qty:0};
+  cart[id].qty+=delta;
+  if(cart[id].qty<=0) delete cart[id];
+
+  document.getElementById("q_"+id).innerText=cart[id]?cart[id].qty:0;
+  renderCart();
+};
+
+/* ===== RENDER CART ===== */
+function renderCart(){
+  const box=document.getElementById("cartBox");
+  const items=document.getElementById("cartItems");
+  const totalBox=document.getElementById("totalPrice");
+
+  items.innerHTML="";
+  let total=0;
+
+  Object.values(cart).forEach(p=>{
+    const line=p.qty*p.wholesale_price;
+    total+=line;
+    items.innerHTML+=`
+      <div>
+        ${p.product_name} × ${p.qty}
+        = ${line} جنيه
+      </div>
+    `;
+  });
+
+  if(total>0){
+    box.style.display="block";
+    totalBox.innerText="الإجمالي: "+total+" جنيه";
+  }else{
+    box.style.display="none";
+  }
+}
+
+/* ===== SEND ORDER ===== */
+window.sendOrder=function(){
+  let msg="طلب موزّع – زيتك\n------------------\n";
+  let total=0;
+
+  Object.values(cart).forEach(p=>{
+    const line=p.qty*p.wholesale_price;
+    total+=line;
+    msg+=`${p.product_name} × ${p.qty} = ${line} جنيه\n`;
+  });
+
+  msg+=`\nالإجمالي: ${total} جنيه`;
 
   window.open(
     `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}`,
