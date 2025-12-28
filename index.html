@@ -3,211 +3,142 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>زيتك | منصة بيع زيوت السيارات</title>
+<title>زيتك | كتالوج الموزّع</title>
 
 <style>
-body{font-family:Tahoma,Arial;background:#f2f2f2;padding:15px}
-.container{background:#fff;padding:20px;border-radius:10px;max-width:620px;margin:auto}
+body{
+  font-family:Tahoma,Arial;
+  background:#f2f2f2;
+  padding:15px
+}
+.container{
+  background:#fff;
+  padding:20px;
+  border-radius:10px;
+  max-width:650px;
+  margin:auto
+}
 h2{text-align:center}
-p{text-align:center;color:#555}
-select,button{width:100%;padding:12px;margin-top:10px;font-size:16px}
-button{border:none;cursor:pointer}
-.primary{background:#0a7cff;color:#fff}
-.secondary{background:#444;color:#fff}
-.whatsapp{background:#25D366;color:#fff}
-.product{background:#f9f9f9;padding:12px;margin-top:10px;border-radius:6px}
-.price{color:#0a7cff;font-weight:bold;margin-top:5px}
-.footer{text-align:center;font-size:13px;color:#666;margin-top:20px}
-.hidden{display:none}
+select,button{
+  width:100%;
+  padding:12px;
+  margin-top:10px;
+  font-size:16px
+}
+button{
+  border:none;
+  cursor:pointer
+}
+.product{
+  background:#f9f9f9;
+  padding:12px;
+  margin-top:10px;
+  border-radius:6px
+}
+.price{
+  color:#0a7cff;
+  font-weight:bold;
+  margin-top:5px
+}
+.whatsapp{
+  background:#25D366;
+  color:#fff;
+  margin-top:8px
+}
+.footer{
+  text-align:center;
+  font-size:13px;
+  color:#666;
+  margin-top:20px
+}
 </style>
 </head>
 
 <body>
 
-<!-- ============ INTRO ============ -->
-<div class="container" id="intro">
-  <h2>🔧 مرحبًا بك في زيتك</h2>
-  <p>اختار طريقة الاستخدام المناسبة ليك</p>
+<div class="container">
+  <h2>📦 كتالوج الموزّع</h2>
 
-  <button class="primary" id="btnIndividual">🚗 أنا صاحب عربية</button>
-  <button class="secondary" id="btnPro">🏪 ورشة / موزّع</button>
-</div>
+  <select id="categorySelect">
+    <option value="">اختر التصنيف</option>
+  </select>
 
-<!-- ============ MAIN APP ============ -->
-<div class="container hidden" id="mainApp">
+  <div id="products"></div>
 
-<h2 id="title">🔧 زيتك – اختار الصح</h2>
-
-<select id="clientType">
-  <option value="individual">فرد</option>
-  <option value="workshop">ورشة</option>
-  <option value="distributor">موزّع</option>
-</select>
-
-<select id="carBrand">
-  <option value="">ماركة السيارة</option>
-  <option>Toyota</option><option>Mitsubishi</option><option>Hyundai</option>
-  <option>Nissan</option><option>Chevrolet</option><option>Kia</option>
-  <option>Peugeot</option><option>Renault</option>
-</select>
-
-<select id="engineType">
-  <option value="">نوع المحرك</option>
-  <option value="بنزين">بنزين</option>
-  <option value="ديزل">ديزل</option>
-</select>
-
-<button class="primary" id="btnRecommend">اعرف الزيت المناسب</button>
-<button class="secondary" id="btnCompare">قارن الزيوت</button>
-
-<select id="categorySelect" class="hidden">
-  <option value="">تصفح حسب التصنيف</option>
-</select>
-
-<div id="result"></div>
-<div class="footer">زيتك – Smart Oil Sales System</div>
+  <div class="footer">
+    زيتك – Distributor Sales Catalog
+  </div>
 </div>
 
 <script>
 document.addEventListener("DOMContentLoaded", function(){
 
-const WHATSAPP="201019388501";
-let data=null;
+const WHATSAPP = "201019388501"; // رقمك بدون +
+let data = null;
 
-/* ===== DATA LOAD ===== */
+/* ===== LOAD DATA ===== */
 fetch("oil_shop_complete.json")
-.then(r=>r.json())
-.then(d=>{
-  data=d;
-  loadCategories();
-});
+  .then(res => res.json())
+  .then(json => {
+    data = json;
+    loadCategories();
+  });
 
-/* ===== START BUTTONS ===== */
-document.getElementById("btnIndividual").onclick = ()=>{
-  showMain("individual");
-};
-
-document.getElementById("btnPro").onclick = ()=>{
-  showMain("workshop");
-};
-
-/* ===== SHOW MAIN ===== */
-function showMain(mode){
-  document.getElementById("intro").classList.add("hidden");
-  document.getElementById("mainApp").classList.remove("hidden");
-  document.getElementById("clientType").value = mode;
-  handleClientType();
-}
-
-/* ===== CLIENT TYPE CHANGE ===== */
-document.getElementById("clientType").onchange = handleClientType;
-
-function handleClientType(){
-  const type = document.getElementById("clientType").value;
-  const car = document.getElementById("carBrand");
-  const engine = document.getElementById("engineType");
-  const cat = document.getElementById("categorySelect");
-
-  if(type==="distributor"){
-    car.classList.add("hidden");
-    engine.classList.add("hidden");
-    cat.classList.remove("hidden");
-    document.getElementById("title").innerText="📦 كتالوج الموزّع";
-  }else{
-    car.classList.remove("hidden");
-    engine.classList.remove("hidden");
-    document.getElementById("title").innerText="🔧 زيتك – اختار الصح";
-  }
-}
-
-/* ===== CATEGORIES ===== */
+/* ===== LOAD CATEGORIES ===== */
 function loadCategories(){
-  const s=document.getElementById("categorySelect");
-  data.categories.forEach(c=>{
-    const o=document.createElement("option");
-    o.value=c.id;o.textContent=c.name;
-    s.appendChild(o);
+  const select = document.getElementById("categorySelect");
+  data.categories.forEach(cat=>{
+    const opt = document.createElement("option");
+    opt.value = cat.id;
+    opt.textContent = cat.name;
+    select.appendChild(opt);
   });
 }
 
-/* ===== BUTTON ACTIONS ===== */
-document.getElementById("btnRecommend").onclick = recommendOil;
-document.getElementById("btnCompare").onclick = compareOils;
-document.getElementById("categorySelect").onchange = loadCategory;
+/* ===== CATEGORY CHANGE ===== */
+document.getElementById("categorySelect").onchange = function(){
+  const catId = Number(this.value);
+  const box = document.getElementById("products");
+  box.innerHTML = "";
 
-/* ===== PRICING ===== */
-function priceRate(){
-  const t=document.getElementById("clientType").value;
-  if(t==="distributor") return 1.05;
-  if(t==="workshop") return 1.15;
-  return 1.25;
-}
+  if(!catId) return;
 
-/* ===== RECOMMEND ===== */
-function recommendOil(){
-  const box=document.getElementById("result");
-  box.innerHTML="";
-  const engine=document.getElementById("engineType").value||"بنزين";
+  const items = data.products.filter(p => p.category_id === catId);
 
-  const oils=data.products.filter(p=>p.category_id===1);
-  if(!oils.length){box.innerText="لا توجد بيانات";return;}
+  if(items.length === 0){
+    box.innerHTML = "<p>لا توجد منتجات في هذا التصنيف</p>";
+    return;
+  }
 
-  oils.sort((a,b)=>a.wholesale_price-b.wholesale_price);
-  const p=oils[0];
-  const price=Math.round(p.wholesale_price*priceRate());
+  items.forEach(p=>{
+    const price = Math.round(p.wholesale_price); // سعر واحد فقط
 
-  box.innerHTML=`
-    <div class="product">
-      <strong>الاختيار الآمن</strong><br>${p.product_name}
-      <div class="price">${price} جنيه</div>
-      <button class="whatsapp" onclick="wa('${p.product_name}',${price})">
-        اطلب واتساب
-      </button>
-    </div>`;
-}
-
-/* ===== COMPARE ===== */
-function compareOils(){
-  const box=document.getElementById("result");
-  box.innerHTML="";
-  data.products.filter(p=>p.category_id===1).slice(0,5)
-    .forEach(p=>{
-      const price=Math.round(p.wholesale_price*priceRate());
-      box.innerHTML+=`
-        <div class="product">
-          <strong>${p.product_name}</strong>
-          <div class="price">${price} جنيه</div>
-          <button class="whatsapp" onclick="wa('${p.product_name}',${price})">
-            اطلب
-          </button>
-        </div>`;
-    });
-}
-
-/* ===== CATEGORY ===== */
-function loadCategory(){
-  const id=Number(this.value);
-  const box=document.getElementById("result");
-  box.innerHTML="";
-  data.products.filter(p=>p.category_id===id)
-    .forEach(p=>{
-      const price=Math.round(p.wholesale_price*priceRate());
-      box.innerHTML+=`
-        <div class="product">
-          <strong>${p.product_name}</strong>
-          <div class="price">${price} جنيه</div>
-          <button class="whatsapp" onclick="wa('${p.product_name}',${price})">
-            اطلب
-          </button>
-        </div>`;
-    });
-}
+    box.innerHTML += `
+      <div class="product">
+        <strong>${p.product_name}</strong><br>
+        ${p.liters ? `السعة: ${p.liters} ${p.unit}<br>` : ""}
+        <div class="price">السعر: ${price} جنيه</div>
+        <button class="whatsapp"
+          onclick="sendWA('${p.product_name}', ${price})">
+          اطلب واتساب
+        </button>
+      </div>
+    `;
+  });
+};
 
 /* ===== WHATSAPP ===== */
-window.wa=function(name,price){
-  window.open(`https://wa.me/${WHATSAPP}?text=${encodeURIComponent(
-    `طلب زيت:\n${name}\nالسعر: ${price} جنيه`
-  )}`);
+window.sendWA = function(name, price){
+  const msg =
+`طلب منتجات – زيتك
+------------------
+${name}
+السعر: ${price} جنيه`;
+
+  window.open(
+    `https://wa.me/${WHATSAPP}?text=${encodeURIComponent(msg)}`,
+    "_blank"
+  );
 };
 
 });
